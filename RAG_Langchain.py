@@ -114,3 +114,38 @@ retriever = vectorstore.as_retriever(
 )
 
 # invoke the retrievers
+docs = retriever.invoke("What is RAG?")
+
+# classic
+from langchain.chains import RetrievalQA
+from langchain.llms import OpenAI
+
+qa_chain = RetrievalQA.from_chain_type(
+    llm = OpenAI(model = "gpt-3.5-turbo"),
+    retriever = retriever
+)
+
+results = qa_chain.invoke("What is RAG?")
+print(results)
+
+# MODERN LCEL RAG PIPELINE
+from langchian_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnablePassthrough
+from langchian_core.output_parsers import StrOutputParser
+
+prompt =  ChatPromptTemplate.from_messages(
+    'Context:\n{context}\n\nQ: {question}'
+)
+def fmt(docs):
+    return "\n\n".join([doc.page_content for doc in docs])
+chain = (
+    {'context': retriever | fmt,
+'question': RunnablePassthrough()}
+| prompt
+| ChatOpenAI(model='gpt-4o-mini')
+| StrOutputParser()
+)
+
+results = chain.invoke("What is RAG?")
+print(results)
